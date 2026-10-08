@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -21,7 +20,7 @@
         }
         canvas { display: block; background: #ffffff; cursor: crosshair; }
 
-        /* Gaya Tampilan Formulir Pop-up */
+        /* Tampilan Formulir Pop-up */
         .modal-formulir {
             display: none; 
             position: fixed; 
@@ -32,8 +31,8 @@
             border-radius: 10px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
             z-index: 1000;
-            width: 80%;
-            max-width: 350px;
+            width: 85%;
+            max-width: 360px;
             text-align: left;
         }
         .modal-overlay {
@@ -46,9 +45,23 @@
         .input-grup { margin-bottom: 12px; }
         .input-grup label { display: block; font-size: 14px; font-weight: bold; margin-bottom: 5px; }
         .input-grup input { width: 93%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        
+        /* Area QRIS */
+        .area-qris {
+            text-align: center;
+            background: #f8f9fa;
+            padding: 10px;
+            border: 2px dashed #007bff;
+            border-radius: 6px;
+            margin-top: 10px;
+            display: none; /* Sembunyi dulu, muncul setelah isi data */
+        }
+        .qris-img { width: 150px; height: 150px; margin: 5px auto; display: block; }
+        
         .tombol-aksi { display: flex; justify-content: space-between; margin-top: 15px; }
-        .btn { padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn { padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; width: 48%; }
         .btn-beli { background: #28a745; color: white; }
+        .btn-lanjut { background: #007bff; color: white; width: 100%; }
         .btn-batal { background: #dc3545; color: white; }
     </style>
 </head>
@@ -64,24 +77,36 @@
         <canvas id="kanvasPiksel" width="1000" height="1000"></canvas>
     </div>
 
-    <!-- Elemen Formulir yang akan muncul saat diklik -->
+    <!-- Formulir Pop-up -->
     <div class="modal-overlay" id="overlay"></div>
     <div class="modal-formulir" id="formulirBeli">
-        <h3 style="margin-top: 0; color: #333;">Konfirmasi Pembelian Piksel</h3>
-        <p id="infoKoordinat" style="font-size: 13px; color: #666;"></p>
+        <h3 style="margin-top: 0; color: #333; text-align: center;">Formulir Pembelian Piksel</h3>
+        <p id="infoKoordinat" style="font-size: 13px; color: #666; text-align: center;"></p>
         
-        <div class="input-grup">
-            <label>Nama Toko / Bisnis Anda:</label>
-            <input type="text" id="namaToko" placeholder="Contoh: Toko Sepatu Keren">
+        <!-- Bagian Input Data -->
+        <div id="bagianInput">
+            <div class="input-grup">
+                <label>Nama Toko / Bisnis:</label>
+                <input type="text" id="namaToko" placeholder="Contoh: Toko Sepatu Keren">
+            </div>
+            <div class="input-grup">
+                <label>Link Website (URL):</label>
+                <input type="url" id="linkToko" placeholder="Contoh: https://tokoku.com">
+            </div>
+            <button class="btn btn-lanjut" onclick="lanjutKePembayaran()">Lanjut ke Pembayaran</button>
         </div>
-        <div class="input-grup">
-            <label>Link Website (URL):</label>
-            <input type="url" id="linkToko" placeholder="Contoh: https://tokoku.com">
+
+        <!-- Bagian QRIS (Muncul setelah klik lanjut) -->
+        <div class="area-qris" id="bagianQris">
+            <p style="margin: 0; font-weight: bold; color: #17a2b8;">Pindai QRIS untuk membayar:</p>
+            <!-- Ini gambar QR Code tiruan untuk simulasi -->
+            <img src="https://qrserver.com" class="qris-img" alt="QRIS">
+            <p style="margin: 5px 0 0 0; font-size: 11px; color: #666;">Silakan bayar sesuai total biaya di atas.</p>
         </div>
 
         <div class="tombol-aksi">
-            <button class="btn btn-batal" onclick="tutupFormulir()">Batal</button>
-            <button class="btn btn-beli" onclick="simpanPemesanan()">Pesan Sekarang</button>
+            <button class="btn btn-batal" id="btnBatal" onclick="tutupFormulir()">Batal</button>
+            <button class="btn btn-beli" id="btnKonfirmasi" onclick="simpanPemesanan()" style="display: none;">Sudah Bayar</button>
         </div>
     </div>
 
@@ -92,41 +117,41 @@
         const formulir = document.getElementById('formulirBeli');
         const overlay = document.getElementById('overlay');
         const infoKoordinat = document.getElementById('infoKoordinat');
+        
+        const bagianInput = document.getElementById('bagianInput');
+        const bagianQris = document.getElementById('bagianQris');
+        const btnBatal = document.getElementById('btnBatal');
+        const btnKonfirmasi = document.getElementById('btnKonfirmasi');
 
         let koordinatAktif = { x: 0, y: 0 };
 
-        // Menggambar grid pembantu
+        // Membuat grid pembantu
         ctx.strokeStyle = "#e0e0e0";
         for (let i = 0; i <= 1000; i += 50) {
             ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 1000); ctx.stroke();
             ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(1000, i); ctx.stroke();
         }
 
-        // Ketika kanvas diklik
         canvas.addEventListener('click', function(event) {
             const rect = canvas.getBoundingClientRect();
             koordinatAktif.x = Math.floor((event.clientX - rect.left) * (canvas.width / rect.width));
             koordinatAktif.y = Math.floor((event.clientY - rect.top) * (canvas.height / rect.height));
             
-            const totalHarga = 100 * 1000; // Contoh simulasi blok 10x10 px
+            const totalHarga = 100 * 1000; 
 
-            // Isi informasi di dalam formulir pop-up
-            infoKoordinat.innerHTML = `Koordinat dipilih: <b>X=${koordinatAktif.x}, Y=${koordinatAktif.y}</b><br>Ukuran: 10x10 px (100 Piksel)<br>Total Biaya: <b>Rp${totalHarga.toLocaleString('id-ID')}</b>`;
+            infoKoordinat.innerHTML = `Koordinat: X=${koordinatAktif.x}, Y=${koordinatAktif.y}<br>Ukuran: 10x10 px (100 px)<br>Total Biaya: <b>Rp${totalHarga.toLocaleString('id-ID')}</b>`;
             
-            // Munculkan formulir ke layar
+            // Reset tampilan formulir ke awal setiap kali dibuka
+            bagianInput.style.display = 'block';
+            bagianQris.style.display = 'none';
+            btnKonfirmasi.style.display = 'none';
+            btnBatal.style.width = '100%';
+
             formulir.style.display = 'block';
             overlay.style.display = 'block';
         });
 
-        function tutupFormulir() {
-            formulir.style.display = 'none';
-            overlay.style.display = 'none';
-            // Bersihkan kolom input
-            document.getElementById('namaToko').value = "";
-            document.getElementById('linkToko').value = "";
-        }
-
-        function simpanPemesanan() {
+        function lanjutKePembayaran() {
             const nama = document.getElementById('namaToko').value;
             const link = document.getElementById('linkToko').value;
 
@@ -135,16 +160,34 @@
                 return;
             }
 
-            // Gambar kotak tanda iklan berhasil dipesan di kanvas
-            ctx.fillStyle = "#28a745"; // Warna hijau tanda sukses
+            // Sembunyikan input data, tampilkan QRIS dan tombol konfirmasi
+            bagianInput.style.display = 'none';
+            bagianQris.style.display = 'block';
+            btnKonfirmasi.style.display = 'block';
+            btnBatal.style.width = '48%';
+        }
+
+        function tutupFormulir() {
+            formulir.style.display = 'none';
+            overlay.style.none;
+            document.getElementById('namaToko').value = "";
+            document.getElementById('linkToko').value = "";
+        }
+
+        function simpanPemesanan() {
+            const nama = document.getElementById('namaToko').value;
+            const link = document.getElementById('linkToko').value;
+
+            ctx.fillStyle = "#28a745"; 
             ctx.fillRect(koordinatAktif.x - 5, koordinatAktif.y - 5, 10, 10);
 
-            // Ubah teks info luar
             hasilHitung.innerHTML = `Sukses! Area X=${koordinatAktif.x}, Y=${koordinatAktif.y} dipesan oleh: <a href="${link}" target="_blank">${nama}</a>`;
             
-            alert(`Terima kasih! Kotak iklan untuk "${nama}" telah disimulasikan.`);
+            alert(`Pembayaran Berhasil!\nKotak iklan untuk "${nama}" sudah aktif di layar.`);
             tutupFormulir();
         }
     </script>
 </body>
 </html>
+
+        
