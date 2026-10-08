@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -8,7 +9,6 @@
         h1 { margin-bottom: 5px; }
         .info-box { background: white; padding: 10px; border-radius: 8px; display: inline-block; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         
-        /* Wadah scroll agar web tidak rusak di layar HP */
         .wadah-scroll {
             width: 100%;
             max-width: 1000px;
@@ -17,8 +17,39 @@
             margin: 0 auto;
             border: 3px solid #333;
             background: white;
+            position: relative;
         }
         canvas { display: block; background: #ffffff; cursor: crosshair; }
+
+        /* Gaya Tampilan Formulir Pop-up */
+        .modal-formulir {
+            display: none; 
+            position: fixed; 
+            top: 50%; left: 50%; 
+            transform: translate(-50%, -50%);
+            background: white; 
+            padding: 20px; 
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            z-index: 1000;
+            width: 80%;
+            max-width: 350px;
+            text-align: left;
+        }
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
+        .input-grup { margin-bottom: 12px; }
+        .input-grup label { display: block; font-size: 14px; font-weight: bold; margin-bottom: 5px; }
+        .input-grup input { width: 93%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        .tombol-aksi { display: flex; justify-content: space-between; margin-top: 15px; }
+        .btn { padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-beli { background: #28a745; color: white; }
+        .btn-batal { background: #dc3545; color: white; }
     </style>
 </head>
 <body>
@@ -26,45 +57,94 @@
     <h1>Kavling Piksel Interaktif</h1>
     <div class="info-box">
         <p style="margin: 5px 0;"><strong>Harga:</strong> Rp1.000 / piksel</p>
-        <!-- Teks di bawah ini akan berubah otomatis saat layar disentuh -->
-        <p id="hasilHitung" style="color: #007bff; margin: 5px 0; font-weight: bold;">Sentuh area kotak di bawah untuk cek posisi!</p>
+        <p id="hasilHitung" style="color: #007bff; margin: 5px 0; font-weight: bold;">Sentuh area kotak di bawah untuk memesan iklan!</p>
     </div>
     
-    <!-- Wadah gulir untuk menampung kanvas besar -->
     <div class="wadah-scroll">
         <canvas id="kanvasPiksel" width="1000" height="1000"></canvas>
+    </div>
+
+    <!-- Elemen Formulir yang akan muncul saat diklik -->
+    <div class="modal-overlay" id="overlay"></div>
+    <div class="modal-formulir" id="formulirBeli">
+        <h3 style="margin-top: 0; color: #333;">Konfirmasi Pembelian Piksel</h3>
+        <p id="infoKoordinat" style="font-size: 13px; color: #666;"></p>
+        
+        <div class="input-grup">
+            <label>Nama Toko / Bisnis Anda:</label>
+            <input type="text" id="namaToko" placeholder="Contoh: Toko Sepatu Keren">
+        </div>
+        <div class="input-grup">
+            <label>Link Website (URL):</label>
+            <input type="url" id="linkToko" placeholder="Contoh: https://tokoku.com">
+        </div>
+
+        <div class="tombol-aksi">
+            <button class="btn btn-batal" onclick="tutupFormulir()">Batal</button>
+            <button class="btn btn-beli" onclick="simpanPemesanan()">Pesan Sekarang</button>
+        </div>
     </div>
 
     <script>
         const canvas = document.getElementById('kanvasPiksel');
         const ctx = canvas.getContext('2d');
         const hasilHitung = document.getElementById('hasilHitung');
+        const formulir = document.getElementById('formulirBeli');
+        const overlay = document.getElementById('overlay');
+        const infoKoordinat = document.getElementById('infoKoordinat');
 
-        // Menggambar garis kotak-kotak tipis pembantu di dalam kanvas (simulasi grid)
+        let koordinatAktif = { x: 0, y: 0 };
+
+        // Menggambar grid pembantu
         ctx.strokeStyle = "#e0e0e0";
         for (let i = 0; i <= 1000; i += 50) {
             ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 1000); ctx.stroke();
             ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(1000, i); ctx.stroke();
         }
 
-        // Fitur mendeteksi sentuhan jari / klik mouse
+        // Ketika kanvas diklik
         canvas.addEventListener('click', function(event) {
             const rect = canvas.getBoundingClientRect();
-            const x = Math.floor((event.clientX - rect.left) * (canvas.width / rect.width));
-            const y = Math.floor((event.clientY - rect.top) * (canvas.height / rect.height));
+            koordinatAktif.x = Math.floor((event.clientX - rect.left) * (canvas.width / rect.width));
+            koordinatAktif.y = Math.floor((event.clientY - rect.top) * (canvas.height / rect.height));
             
-            // Asumsi minimal pembelian iklan berbentuk blok kecil ukuran 10x10 piksel (100 piksel)
-            const totalPiksel = 100; 
-            const totalHarga = totalPiksel * 1000; // 100 x Rp1.000 = Rp100.000
+            const totalHarga = 100 * 1000; // Contoh simulasi blok 10x10 px
 
-            // Menampilkan info ke layar web
-            hasilHitung.innerHTML = `Koordinat tersentuh: X=${x}, Y=${y}<br>Jika beli blok ini (10x10 px) = 100 Piksel<br>Total Harga: Rp${totalHarga.toLocaleString('id-ID')}`;
+            // Isi informasi di dalam formulir pop-up
+            infoKoordinat.innerHTML = `Koordinat dipilih: <b>X=${koordinatAktif.x}, Y=${koordinatAktif.y}</b><br>Ukuran: 10x10 px (100 Piksel)<br>Total Biaya: <b>Rp${totalHarga.toLocaleString('id-ID')}</b>`;
             
-            // Menggambar kotak merah kecil di lokasi yang diklik sebagai tanda
-            ctx.fillStyle = "#ff4d4d";
-            ctx.fillRect(x - 5, y - 5, 10, 10);
+            // Munculkan formulir ke layar
+            formulir.style.display = 'block';
+            overlay.style.display = 'block';
         });
+
+        function tutupFormulir() {
+            formulir.style.display = 'none';
+            overlay.style.display = 'none';
+            // Bersihkan kolom input
+            document.getElementById('namaToko').value = "";
+            document.getElementById('linkToko').value = "";
+        }
+
+        function simpanPemesanan() {
+            const nama = document.getElementById('namaToko').value;
+            const link = document.getElementById('linkToko').value;
+
+            if(nama === "" || link === "") {
+                alert("Harap isi Nama Toko dan Link Website Anda!");
+                return;
+            }
+
+            // Gambar kotak tanda iklan berhasil dipesan di kanvas
+            ctx.fillStyle = "#28a745"; // Warna hijau tanda sukses
+            ctx.fillRect(koordinatAktif.x - 5, koordinatAktif.y - 5, 10, 10);
+
+            // Ubah teks info luar
+            hasilHitung.innerHTML = `Sukses! Area X=${koordinatAktif.x}, Y=${koordinatAktif.y} dipesan oleh: <a href="${link}" target="_blank">${nama}</a>`;
+            
+            alert(`Terima kasih! Kotak iklan untuk "${nama}" telah disimulasikan.`);
+            tutupFormulir();
+        }
     </script>
 </body>
 </html>
-
