@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Sewa Piksel Rp1.000</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; background: #eef2f3; margin: 0; padding: 20px; }
+        h1 { margin-bottom: 5px; }
+        .info-box { background: white; padding: 10px; border-radius: 8px; display: inline-block; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        
+        /* Wadah scroll agar web tidak rusak di layar HP */
+        .wadah-scroll {
+            width: 100%;
+            max-width: 1000px;
+            height: 500px;
+            overflow: auto;
+            margin: 0 auto;
+            border: 3px solid #333;
+            background: white;
+        }
+        canvas { display: block; background: #ffffff; cursor: crosshair; }
+    </style>
+</head>
+<body>
+
+    <h1>Kavling Piksel Interaktif</h1>
+    <div class="info-box">
+        <p style="margin: 5px 0;"><strong>Harga:</strong> Rp1.000 / piksel</p>
+        <!-- Teks di bawah ini akan berubah otomatis saat layar disentuh -->
+        <p id="hasilHitung" style="color: #007bff; margin: 5px 0; font-weight: bold;">Sentuh area kotak di bawah untuk cek posisi!</p>
+    </div>
+    
+    <!-- Wadah gulir untuk menampung kanvas besar -->
+    <div class="wadah-scroll">
+        <canvas id="kanvasPiksel" width="1000" height="1000"></canvas>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('kanvasPiksel');
+        const ctx = canvas.getContext('2d');
+        const hasilHitung = document.getElementById('hasilHitung');
+
+        // Menggambar garis kotak-kotak tipis pembantu di dalam kanvas (simulasi grid)
+        ctx.strokeStyle = "#e0e0e0";
+        for (let i = 0; i <= 1000; i += 50) {
+            ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 1000); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(1000, i); ctx.stroke();
+        }
+
+        // Fitur mendeteksi sentuhan jari / klik mouse
+        canvas.addEventListener('click', function(event) {
+            const rect = canvas.getBoundingClientRect();
+            const x = Math.floor((event.clientX - rect.left) * (canvas.width / rect.width));
+            const y = Math.floor((event.clientY - rect.top) * (canvas.height / rect.height));
+            
+            // Asumsi minimal pembelian iklan berbentuk blok kecil ukuran 10x10 piksel (100 piksel)
+            const totalPiksel = 100; 
+            const totalHarga = totalPiksel * 1000; // 100 x Rp1.000 = Rp100.000
+
+            // Menampilkan info ke layar web
+            hasilHitung.innerHTML = `Koordinat tersentuh: X=${x}, Y=${y}<br>Jika beli blok ini (10x10 px) = 100 Piksel<br>Total Harga: Rp${totalHarga.toLocaleString('id-ID')}`;
+            
+            // Menggambar kotak merah kecil di lokasi yang diklik sebagai tanda
+            ctx.fillStyle = "#ff4d4d";
+            ctx.fillRect(x - 5, y - 5, 10, 10);
+        });
+    </script>
+</body>
+</html>
+
